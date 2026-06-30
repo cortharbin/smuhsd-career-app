@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum OpportunityType {
+  JOB
+  INTERNSHIP
+  VOLUNTEER
+  EVENT
+  TRAINING_PATHWAY
+  STUDENT_RESOURCE
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  ACTIVE_VERIFIED
+  NEEDS_REVIEW
+  STALE
+  ARCHIVED
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Organization {
+  id            String        @id @default(cuid())
+  name          String
+  website       String?
+  contactEmail  String?
+  contactPhone  String?
+  city          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  opportunities Opportunity[]
+}
+
+model Opportunity {
+  id                  String             @id @default(cuid())
+  externalId          String?            @unique
+  title               String
+  type                OpportunityType
+  organizationId      String?
+  organization        Organization?      @relation(fields: [organizationId], references: [id])
+  summary             String?
+  description         String?
+  city                String?
+  locationText        String?
+  url                 String?
+  applyUrl            String?
+  contactEmail        String?
+  contactPhone        String?
+  minAge              Int?
+  maxAge              Int?
+  gradeRequirement    String?
+  paid                Boolean?
+  compensationText    String?
+  deadlineText        String?
+  startDate           DateTime?
+  endDate             DateTime?
+  careerPathway       String?
+  tags                String[]           @default([])
+  sourceName          String?
+  sourceUrl           String?
+  sourceRecordId      String?
+  verificationStatus  VerificationStatus @default(UNVERIFIED)
+  lastVerifiedAt      DateTime?
+  workPermitLikely    Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+model EmployerSubmission {
+  id                String           @id @default(cuid())
+  status            SubmissionStatus @default(PENDING)
+  organizationName  String
+  contactName       String?
+  contactEmail      String
+  title             String
+  type              OpportunityType
+  description       String
+  city              String?
+  applyUrl          String?
+  minAge            Int?
+  paid              Boolean?
+  compensationText  String?
+  deadlineText      String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+model Resource {
+  id                  String             @id @default(cuid())
+  externalId          String?            @unique
+  title               String
+  summary             String?
+  url                 String?
+  audience            String[]           @default([])
+  verificationStatus  VerificationStatus @default(UNVERIFIED)
+  lastVerifiedAt      DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}

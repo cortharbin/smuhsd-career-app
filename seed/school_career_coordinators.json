@@ -1,0 +1,37 @@
+[
+  {
+    "school": "Aragon High School",
+    "name": "Queenie Hua",
+    "email": "Qhua@smuhsd.org"
+  },
+  {
+    "school": "Burlingame High School",
+    "name": "Carrie Hermann",
+    "email": "Chermann@smuhsd.org"
+  },
+  {
+    "school": "Capuchino High School",
+    "name": "Jerel Reyes",
+    "email": "jreyes@smuhsd.org"
+  },
+  {
+    "school": "Hillsdale High School",
+    "name": "Sun Chang",
+    "email": "hschang@smuhsd.org"
+  },
+  {
+    "school": "Mills High School",
+    "name": "Sun Chang",
+    "email": "hschang@smuhsd.org"
+  },
+  {
+    "school": "San Mateo High School",
+    "name": "Chris Zografos",
+    "email": "czografos@smuhsd.org"
+  },
+  {
+    "school": "Peninsula High School",
+    "name": "Kim Koivisto",
+    "email": "kkoivisto@smuhsd.org"
+  }
+]

@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum OpportunityType {
+  JOB
+  INTERNSHIP
+  PROGRAM
+  VOLUNTEER
+  EVENT
+  TRAINING_PATHWAY
+  STUDENT_RESOURCE
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  ACTIVE_VERIFIED
+  NEEDS_REVIEW
+  STALE
+  ARCHIVED
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Organization {
+  id            String        @id @default(cuid())
+  externalId    String?       @unique
+  name          String
+  website       String?
+  contactEmail  String?
+  contactPhone  String?
+  city          String?
+  sourceIds     String[]      @default([])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  opportunities Opportunity[]
+}
+
+model Opportunity {
+  id                 String             @id @default(cuid())
+  externalId         String?            @unique
+  title              String
+  type               OpportunityType
+  organizationId     String?
+  organization       Organization?      @relation(fields: [organizationId], references: [id])
+  organizationName   String?
+  summary            String?
+  description        String?
+  city               String?
+  locationText       String?
+  url                String?
+  applyUrl           String?
+  contactEmail       String?
+  contactPhone       String?
+  contactText        String?
+  minAge             Int?
+  maxAge             Int?
+  gradeRequirement   String?
+  paid               Boolean?
+  compensationText   String?
+  deadlineText       String?
+  scheduleText       String?
+  category           String?
+  careerPathway      String?
+  tags               String[]           @default([])
+  sourceName         String?
+  sourceFile         String?
+  sourceSheet        String?
+  sourceRow          String?
+  sourceUrl          String?
+  sourceRecordId     String?
+  sourceConfidence   String?
+  currentStatus      String?
+  trustLevel         String             @default("Source lead")
+  highlighted        Boolean            @default(false)
+  hidden             Boolean            @default(false)
+  expiresAt          DateTime?
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  lastVerifiedAt     DateTime?
+  workPermitLikely   Boolean            @default(false)
+  rawSource          Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model EmployerSubmission {
+  id               String           @id @default(cuid())
+  status           SubmissionStatus @default(PENDING)
+  organizationName String
+  contactName      String?
+  contactEmail     String
+  title            String
+  type             OpportunityType
+  description      String
+  city             String?
+  locationText     String?
+  applyUrl         String?
+  contactText      String?
+  minAge           Int?
+  gradeRequirement String?
+  paid             Boolean?
+  compensationText String?
+  deadlineText     String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model ListingReport {
+  id            String   @id @default(cuid())
+  opportunityId String
+  reason        String
+  details       String?
+  createdAt     DateTime @default(now())
+}
+
+model Resource {
+  id                 String             @id @default(cuid())
+  externalId         String?            @unique
+  title              String
+  type               String?
+  summary            String?
+  url                String?
+  audience           String[]           @default([])
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  lastVerifiedAt     DateTime?
+  data               Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model SchoolCareerCoordinator {
+  id        String   @id @default(cuid())
+  school    String
+  name      String
+  email     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

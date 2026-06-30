@@ -1,0 +1,45 @@
+[
+  {
+    "id": "career-interest-profiler",
+    "title": "California Colleges Interest Profiler workflow",
+    "type": "career_exploration",
+    "source": "counselor worksheet",
+    "steps": [
+      "Log into CaliforniaColleges.edu with school email",
+      "Go to Career > Interest Profile",
+      "Take the assessment",
+      "Record top interests and research three careers",
+      "Pick one career and find a day-in-the-life video",
+      "Identify training/program options and cost"
+    ]
+  },
+  {
+    "id": "ca_smusd_work_permit_guide",
+    "jurisdiction": "California / SMUHSD",
+    "verified_date": "2026-06-27",
+    "summary": "Students under 18 generally need a work permit before starting a job. In SMUHSD, the B1-1 request is completed by student, parent/guardian, and employer, then processed by the school/district career center process.",
+    "student_steps": [
+      "Download/print B1-1 Request for Work Permit",
+      "Student completes minor/school section",
+      "Parent/guardian signs",
+      "Employer completes and signs employer section",
+      "Submit completed form to school College & Career Center or designated staff",
+      "Wait for processing before starting work"
+    ],
+    "important_notes": [
+      "Work permits are school-district issued in California",
+      "Entertainment work permits are handled separately",
+      "School sites may have additional GPA/attendance requirements",
+      "Work permits may need renewal each school year"
+    ],
+    "sources": [
+      "smuhsd-work-permits",
+      "cde-work-permits",
+      "ca-dir-child-labor",
+      "ca-dir-minimum-wage-2026",
+      "bhs-work-permits",
+      "ahs-work-permits",
+      "smhs-work-permits"
+    ]
+  }
+]

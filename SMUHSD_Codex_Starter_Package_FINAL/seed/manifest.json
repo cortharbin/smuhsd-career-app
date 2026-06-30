@@ -1,0 +1,12 @@
+{
+  "generated_on": "2026-06-27",
+  "source_kb_file": "SMUHSD_Career_Opportunities_Source_Data_KB (1).md",
+  "source_record_count": 569,
+  "pdf_page_count": 63,
+  "opportunity_count": 219,
+  "organization_count": 153,
+  "career_pathway_count": 247,
+  "baywork_training_program_count": 166,
+  "verified_web_resource_count": 9,
+  "important_note": "This seed includes all parsed records and PDF flyer pages from the counselor-provided KB. Individual opportunities still need runtime verification before being labeled open."
+}

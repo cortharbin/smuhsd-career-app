@@ -1,0 +1,13 @@
+ALTER TABLE "Opportunity" ADD COLUMN IF NOT EXISTS "trustLevel" TEXT NOT NULL DEFAULT 'Source lead';
+ALTER TABLE "Opportunity" ADD COLUMN IF NOT EXISTS "highlighted" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Opportunity" ADD COLUMN IF NOT EXISTS "hidden" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Opportunity" ADD COLUMN IF NOT EXISTS "expiresAt" TIMESTAMP(3);
+
+CREATE TABLE IF NOT EXISTS "ListingReport" (
+  "id" TEXT NOT NULL,
+  "opportunityId" TEXT NOT NULL,
+  "reason" TEXT NOT NULL,
+  "details" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "ListingReport_pkey" PRIMARY KEY ("id")
+);

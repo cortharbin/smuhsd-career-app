@@ -1,0 +1,83 @@
+[
+  {
+    "id": "smuhsd-work-permits",
+    "title": "SMUHSD Work Permits",
+    "url": "https://www.smuhsd.org/students/student-support-and-information/work-permits",
+    "type": "work_permit",
+    "verified_date": "2026-06-27",
+    "verification_status": "verified_current_page",
+    "summary": "SMUHSD says under-18 students needing a new or renewed work permit should download, print, and complete the B1-1 Request for Work Permit; student, parent/guardian, and employer sections are required."
+  },
+  {
+    "id": "cde-work-permits",
+    "title": "California Department of Education - Work Permits for Students",
+    "url": "https://www.cde.ca.gov/ci/ct/we/workpermitsforstudents.asp",
+    "type": "legal_resource",
+    "verified_date": "2026-06-27",
+    "verification_status": "verified_current_page",
+    "summary": "CDE states only work permits issued by a California school district are valid in California; entertainment work permits use a separate process."
+  },
+  {
+    "id": "ca-dir-child-labor",
+    "title": "California DIR - Child Labor Laws",
+    "url": "https://www.dir.ca.gov/dlse/dlse-cl.htm",
+    "type": "legal_resource",
+    "verified_date": "2026-06-27",
+    "verification_status": "verified_current_page",
+    "summary": "California DIR maintains child labor law guidance covering work hours, age requirements, restrictions, employer requirements, and work permits."
+  },
+  {
+    "id": "ca-dir-minimum-wage-2026",
+    "title": "California DIR - 2026 Minimum Wage",
+    "url": "https://www.dir.ca.gov/dlse/",
+    "type": "legal_resource",
+    "verified_date": "2026-06-27",
+    "verification_status": "verified_current_page",
+    "summary": "California DIR states the statewide minimum wage effective January 1, 2026 is $16.90 per hour."
+  },
+  {
+    "id": "smc-jobs-for-youth",
+    "title": "San Mateo County Jobs for Youth",
+    "url": "https://www.smcgov.org/hr/jobs-youth",
+    "type": "job_readiness_program",
+    "verified_date": "2026-06-27",
+    "verification_status": "verified_current_page",
+    "summary": "County of San Mateo Jobs for Youth serves youth ages 14-21 and offers job-readiness support."
+  },
+  {
+    "id": "jobsforyouth-org",
+    "title": "Jobs for Youth Job Board",
+    "url": "https://jobsforyouth.org/",
+    "type": "job_board",
+    "verified_date": "2026-06-27",
+    "verification_status": "verified_current_page",
+    "summary": "Jobs for Youth maintains a youth-focused job board with employment, internship, and volunteer opportunities in San Mateo County."
+  },
+  {
+    "id": "bhs-work-permits",
+    "title": "Burlingame High School Work Permits",
+    "url": "https://bhs.smuhsd.org/counseling/college-and-career-counseling/work-permits",
+    "type": "school_resource",
+    "verified_date": "2026-06-27",
+    "verification_status": "verified_current_page",
+    "summary": "BHS notes students must reapply and obtain a new work permit at the beginning of each school year and allow 48-72 hours for processing."
+  },
+  {
+    "id": "ahs-work-permits",
+    "title": "Aragon High School Work Permits",
+    "url": "https://ahs.smuhsd.org/counseling/college-career-center/work-permits",
+    "type": "school_resource",
+    "verified_date": "2026-06-27",
+    "verification_status": "verified_current_page",
+    "summary": "AHS work permit instructions require physical signatures from employer and parent/guardian and student completion of the minor/school section."
+  },
+  {
+    "id": "smhs-work-permits",
+    "title": "San Mateo High School Work Permits",
+    "url": "https://smhs.smuhsd.org/counseling/college-and-career-center/work-permits-14521",
+    "type": "school_resource",
+    "verified_date": "2026-06-27",
+    "verification_status": "verified_current_page",
+    "summary": "SMHS lists work permit requirements including good attendance, minimum 2.0 GPA, and parent/guardian permission."
+  }
+]
