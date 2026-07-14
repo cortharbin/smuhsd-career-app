@@ -45,15 +45,19 @@ export async function updateOpportunityVerification(formData: FormData) {
   }
 
   if (opportunityId) {
-    await prisma.opportunity.updateMany({
-      where: {
-        OR: [{ id: opportunityId }, { externalId: opportunityId }]
-      },
-      data: {
-        verificationStatus: verification as "ACTIVE_VERIFIED" | "ARCHIVED" | "NEEDS_REVIEW" | "UNVERIFIED",
-        lastVerifiedAt: verification === "ACTIVE_VERIFIED" ? new Date() : null
-      }
-    });
+    try {
+      await prisma.opportunity.updateMany({
+        where: {
+          OR: [{ id: opportunityId }, { externalId: opportunityId }]
+        },
+        data: {
+          verificationStatus: verification as "ACTIVE_VERIFIED" | "ARCHIVED" | "NEEDS_REVIEW" | "UNVERIFIED",
+          lastVerifiedAt: verification === "ACTIVE_VERIFIED" ? new Date() : null
+        }
+      });
+    } catch {
+      redirect(missingDatabasePath(code, "search"));
+    }
   }
 
   revalidatePath("/admin/opportunities");
@@ -71,45 +75,49 @@ export async function updateOpportunityManagement(formData: FormData) {
   }
 
   if (opportunityId) {
-    if (action === "highlight") {
-      await prisma.opportunity.updateMany({
-        where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
-        data: { highlighted: true, trustLevel: "Admin highlighted" }
-      });
-    }
-    if (action === "unhighlight") {
-      await prisma.opportunity.updateMany({
-        where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
-        data: { highlighted: false, trustLevel: "Source lead" }
-      });
-    }
-    if (action === "hide") {
-      await prisma.opportunity.updateMany({
-        where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
-        data: { hidden: true, currentStatus: "hidden_by_admin" }
-      });
-    }
-    if (action === "expire") {
-      await prisma.opportunity.updateMany({
-        where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
-        data: {
-          verificationStatus: "ARCHIVED",
-          currentStatus: "archived_by_admin",
-          expiresAt: new Date()
-        }
-      });
-    }
-    if (action === "approve") {
-      await prisma.opportunity.updateMany({
-        where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
-        data: {
-          verificationStatus: "ACTIVE_VERIFIED",
-          currentStatus: "approved_by_admin",
-          hidden: false,
-          lastVerifiedAt: new Date(),
-          trustLevel: "Admin approved"
-        }
-      });
+    try {
+      if (action === "highlight") {
+        await prisma.opportunity.updateMany({
+          where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
+          data: { highlighted: true, trustLevel: "Admin highlighted" }
+        });
+      }
+      if (action === "unhighlight") {
+        await prisma.opportunity.updateMany({
+          where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
+          data: { highlighted: false, trustLevel: "Source lead" }
+        });
+      }
+      if (action === "hide") {
+        await prisma.opportunity.updateMany({
+          where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
+          data: { hidden: true, currentStatus: "hidden_by_admin" }
+        });
+      }
+      if (action === "expire") {
+        await prisma.opportunity.updateMany({
+          where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
+          data: {
+            verificationStatus: "ARCHIVED",
+            currentStatus: "archived_by_admin",
+            expiresAt: new Date()
+          }
+        });
+      }
+      if (action === "approve") {
+        await prisma.opportunity.updateMany({
+          where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
+          data: {
+            verificationStatus: "ACTIVE_VERIFIED",
+            currentStatus: "approved_by_admin",
+            hidden: false,
+            lastVerifiedAt: new Date(),
+            trustLevel: "Admin approved"
+          }
+        });
+      }
+    } catch {
+      redirect(missingDatabasePath(code, "search"));
     }
   }
 
@@ -158,26 +166,30 @@ export async function addOpportunity(formData: FormData) {
 
   const paid = parsed.paid === "unknown" ? null : parsed.paid === "paid";
 
-  await prisma.opportunity.create({
-    data: {
-      organizationName: parsed.organizationName,
-      title: parsed.title,
-      type: parsed.type,
-      locationText: parsed.locationText,
-      city: parsed.locationText,
-      description: parsed.description,
-      gradeRequirement: parsed.gradeRequirement,
-      paid,
-      compensationText: parsed.compensationText,
-      deadlineText: parsed.deadlineText,
-      applyUrl: parsed.applyUrl,
-      verificationStatus: "ACTIVE_VERIFIED",
-      currentStatus: "admin_created",
-      lastVerifiedAt: new Date(),
-      trustLevel: "Admin created",
-      workPermitLikely: workPermitLikely(parsed.type, paid, null)
-    }
-  });
+  try {
+    await prisma.opportunity.create({
+      data: {
+        organizationName: parsed.organizationName,
+        title: parsed.title,
+        type: parsed.type,
+        locationText: parsed.locationText,
+        city: parsed.locationText,
+        description: parsed.description,
+        gradeRequirement: parsed.gradeRequirement,
+        paid,
+        compensationText: parsed.compensationText,
+        deadlineText: parsed.deadlineText,
+        applyUrl: parsed.applyUrl,
+        verificationStatus: "ACTIVE_VERIFIED",
+        currentStatus: "admin_created",
+        lastVerifiedAt: new Date(),
+        trustLevel: "Admin created",
+        workPermitLikely: workPermitLikely(parsed.type, paid, null)
+      }
+    });
+  } catch {
+    redirect(missingDatabasePath(code, "add"));
+  }
 
   revalidatePath("/admin/opportunities");
   revalidatePath("/opportunities");
@@ -193,50 +205,54 @@ export async function updateSubmissionStatus(formData: FormData) {
     redirect(missingDatabasePath(code, "submissions"));
   }
 
-  if (submissionId && status === "APPROVED") {
-    await prisma.$transaction(async (tx) => {
-      const submission = await tx.employerSubmission.findUnique({
-        where: { id: submissionId }
+  try {
+    if (submissionId && status === "APPROVED") {
+      await prisma.$transaction(async (tx) => {
+        const submission = await tx.employerSubmission.findUnique({
+          where: { id: submissionId }
+        });
+
+        if (!submission) return;
+
+        await tx.opportunity.create({
+          data: {
+            organizationName: submission.organizationName,
+            title: submission.title,
+            type: submission.type,
+            city: submission.city,
+            locationText: submission.locationText,
+            description: submission.description,
+            gradeRequirement: submission.gradeRequirement,
+            minAge: submission.minAge,
+            paid: submission.paid,
+            compensationText: submission.compensationText,
+            deadlineText: submission.deadlineText,
+            applyUrl: submission.applyUrl,
+            contactText: submission.contactText,
+            contactEmail: submission.contactEmail,
+            verificationStatus: "ACTIVE_VERIFIED",
+            currentStatus: "approved_submission",
+            lastVerifiedAt: new Date(),
+            trustLevel: "Admin approved submission",
+            workPermitLikely: workPermitLikely(submission.type, submission.paid, submission.minAge)
+          }
+        });
+
+        await tx.employerSubmission.update({
+          where: { id: submissionId },
+          data: { status: "APPROVED" }
+        });
       });
-
-      if (!submission) return;
-
-      await tx.opportunity.create({
+    } else if (submissionId) {
+      await prisma.employerSubmission.updateMany({
+        where: { id: submissionId },
         data: {
-          organizationName: submission.organizationName,
-          title: submission.title,
-          type: submission.type,
-          city: submission.city,
-          locationText: submission.locationText,
-          description: submission.description,
-          gradeRequirement: submission.gradeRequirement,
-          minAge: submission.minAge,
-          paid: submission.paid,
-          compensationText: submission.compensationText,
-          deadlineText: submission.deadlineText,
-          applyUrl: submission.applyUrl,
-          contactText: submission.contactText,
-          contactEmail: submission.contactEmail,
-          verificationStatus: "ACTIVE_VERIFIED",
-          currentStatus: "approved_submission",
-          lastVerifiedAt: new Date(),
-          trustLevel: "Admin approved submission",
-          workPermitLikely: workPermitLikely(submission.type, submission.paid, submission.minAge)
+          status: status as "PENDING" | "APPROVED" | "REJECTED"
         }
       });
-
-      await tx.employerSubmission.update({
-        where: { id: submissionId },
-        data: { status: "APPROVED" }
-      });
-    });
-  } else if (submissionId) {
-    await prisma.employerSubmission.updateMany({
-      where: { id: submissionId },
-      data: {
-        status: status as "PENDING" | "APPROVED" | "REJECTED"
-      }
-    });
+    }
+  } catch {
+    redirect(missingDatabasePath(code, "submissions"));
   }
 
   revalidatePath("/admin/opportunities");

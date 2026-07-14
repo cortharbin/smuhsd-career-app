@@ -9,11 +9,14 @@ import { displayAgeGrade, displayDeadline, displayPay, displayStatus, displayTyp
 import { reportListing } from "./actions";
 
 export default async function OpportunityDetailPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
   const opportunity = await getOpportunity(id);
 
   if (!opportunity) {
@@ -44,6 +47,18 @@ export default async function OpportunityDetailPage({
             This looks like paid work for a student who may be under 18. Check the
             work permit guide and your school College & Career Center before starting.
           </p>
+        </div>
+      )}
+
+      {query.reported === "1" && (
+        <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+          Thank you. The report was sent for admin review.
+        </div>
+      )}
+
+      {query.reportError === "1" && (
+        <div className="mt-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
+          The report could not be saved right now. Please try again later.
         </div>
       )}
 

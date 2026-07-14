@@ -58,25 +58,29 @@ export async function submitOpportunity(formData: FormData) {
     parsed.ageRequirementKind === "grade" && parsed.gradeLevel ? `Grade ${parsed.gradeLevel}` : undefined;
   const compensationText = formatPayRange(parsed.payMin, parsed.payMax);
 
-  await prisma.employerSubmission.create({
-    data: {
-      organizationName: parsed.organizationName,
-      title: parsed.title,
-      type: parsed.type,
-      locationText: parsed.locationText,
-      description: parsed.description,
-      gradeRequirement,
-      minAge: parsed.ageRequirementKind === "age" ? parsed.minAge : null,
-      paid: parsed.paid === "unknown" ? null : parsed.paid === "paid",
-      compensationText,
-      deadlineText: parsed.deadlineText,
-      applyUrl: parsed.applyUrl,
-      contactText: parsed.contactText,
-      contactName: parsed.contactName,
-      contactEmail: parsed.contactEmail,
-      status: "PENDING"
-    }
-  });
+  try {
+    await prisma.employerSubmission.create({
+      data: {
+        organizationName: parsed.organizationName,
+        title: parsed.title,
+        type: parsed.type,
+        locationText: parsed.locationText,
+        description: parsed.description,
+        gradeRequirement,
+        minAge: parsed.ageRequirementKind === "age" ? parsed.minAge : null,
+        paid: parsed.paid === "unknown" ? null : parsed.paid === "paid",
+        compensationText,
+        deadlineText: parsed.deadlineText,
+        applyUrl: parsed.applyUrl,
+        contactText: parsed.contactText,
+        contactName: parsed.contactName,
+        contactEmail: parsed.contactEmail,
+        status: "PENDING"
+      }
+    });
+  } catch {
+    redirect("/submit?error=database");
+  }
 
   revalidatePath("/admin/opportunities");
   redirect("/submit?submitted=1");

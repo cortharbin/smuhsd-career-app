@@ -409,11 +409,19 @@ function ReportsTab({ reports }: { reports: Awaited<ReturnType<typeof getListing
             </Link>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{report.details || "No extra details provided."}</p>
-          <p className="mt-2 text-xs text-muted-foreground">{new Date(report.createdAt).toLocaleString()}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{formatReportDate(report.createdAt)}</p>
         </Card>
       ))}
     </section>
   );
+}
+
+function formatReportDate(value: Date | string) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Los_Angeles"
+  }).format(new Date(value));
 }
 
 function SubmissionsTab({

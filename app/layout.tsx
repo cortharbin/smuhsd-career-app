@@ -17,8 +17,8 @@ const navItems = [
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen antialiased" suppressHydrationWarning>
         <header className="sticky top-0 z-20 border-b border-teal-950/20 bg-teal-900/95 text-white shadow-sm backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <Link href="/" className="button-pop text-lg font-semibold tracking-normal transition-opacity hover:opacity-90">

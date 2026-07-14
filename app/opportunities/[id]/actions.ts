@@ -24,10 +24,16 @@ export async function reportListing(formData: FormData) {
 
   const parsed = parsedResult.data;
 
-  if (databaseIsConfigured()) {
+  if (!databaseIsConfigured()) {
+    redirect(`/opportunities/${encodeURIComponent(parsed.opportunityId)}?reportError=1`);
+  }
+
+  try {
     await prisma.listingReport.create({
       data: parsed
     });
+  } catch {
+    redirect(`/opportunities/${encodeURIComponent(parsed.opportunityId)}?reportError=1`);
   }
 
   revalidatePath("/admin/opportunities");
