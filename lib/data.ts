@@ -799,6 +799,27 @@ export async function getAdminOpportunities() {
   return records;
 }
 
+export async function getOpportunityStats() {
+  const records = await getOpportunityRecords();
+  let opportunityCount = 0;
+  let needVerificationCount = 0;
+  let workPermitReminderCount = 0;
+
+  for (const record of records) {
+    if (record.hidden) continue;
+    opportunityCount += 1;
+    if (record.verificationStatus !== "ACTIVE_VERIFIED") needVerificationCount += 1;
+    if (record.workPermitLikely) workPermitReminderCount += 1;
+  }
+
+  return {
+    opportunityCount,
+    organizationCount: organizationsSeed.length,
+    needVerificationCount,
+    workPermitReminderCount
+  };
+}
+
 export async function getAdminSubmissions() {
   if (!databaseIsConfigured()) return [] as EmployerSubmission[];
   try {

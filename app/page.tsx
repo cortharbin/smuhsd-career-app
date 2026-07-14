@@ -1,7 +1,7 @@
 import { BriefcaseBusiness, GraduationCap, HandHeart, Search, ShieldCheck } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getOrganizationCount, getOpportunities } from "@/lib/data";
+import { getOpportunityStats } from "@/lib/data";
 
 const quickLinks = [
   { href: "/opportunities?type=JOB", label: "Jobs", icon: BriefcaseBusiness },
@@ -12,10 +12,10 @@ const quickLinks = [
 ];
 
 export default async function HomePage() {
-  const opportunities = await getOpportunities();
+  const stats = await getOpportunityStats();
 
   return (
-    <div className="page-enter mx-auto max-w-6xl px-4 py-10">
+    <div className="home-enter page-enter mx-auto max-w-6xl px-4 py-10">
       <section className="section-enter grid gap-8 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
         <div className="section-enter">
           <p className="mb-3 text-sm font-semibold uppercase text-primary">
@@ -38,18 +38,10 @@ export default async function HomePage() {
         </div>
         <Card className="section-enter p-5">
           <div className="grid grid-cols-2 gap-4">
-            <Stat label="Opportunity records" value={opportunities.length.toString()} />
-            <Stat label="Organizations" value={getOrganizationCount().toString()} />
-            <Stat
-              label="Need verification"
-              value={opportunities
-                .filter((item) => item.verificationStatus !== "ACTIVE_VERIFIED")
-                .length.toString()}
-            />
-            <Stat
-              label="Work permit reminders"
-              value={opportunities.filter((item) => item.workPermitLikely).length.toString()}
-            />
+            <Stat label="Opportunity records" value={stats.opportunityCount.toString()} />
+            <Stat label="Organizations" value={stats.organizationCount.toString()} />
+            <Stat label="Need verification" value={stats.needVerificationCount.toString()} />
+            <Stat label="Work permit reminders" value={stats.workPermitReminderCount.toString()} />
           </div>
         </Card>
       </section>

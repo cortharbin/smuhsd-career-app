@@ -355,6 +355,7 @@ function AdminTable({
                           <option value="Verified">Verified</option>
                           <option value="Unverified">Unverified</option>
                           <option value="Pending">Pending</option>
+                          <option value="Archived">Archived</option>
                         </Select>
                         <Button type="submit" className="h-8 px-3 text-xs">Save</Button>
                       </form>

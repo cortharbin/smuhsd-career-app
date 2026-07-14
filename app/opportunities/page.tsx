@@ -42,7 +42,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
   const visibleOpportunities = page.items;
 
   return (
-    <div className="page-enter mx-auto max-w-6xl px-4 py-8">
+    <div className="opportunities-enter page-enter mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="page-kicker">
@@ -150,7 +150,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
         {visibleOpportunities.map((opportunity, index) => (
           <Card
             key={opportunity.id}
-            style={{ animationDelay: `${Math.min(index, 12) * 24}ms` }}
+            style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}
             className={`section-enter opportunity-card p-5 pl-6 ${opportunity.highlighted ? "border-amber-300" : ""} ${
               opportunity.verificationStatus === "ARCHIVED" ? "border-red-200 bg-red-50/40" : ""
             }`}

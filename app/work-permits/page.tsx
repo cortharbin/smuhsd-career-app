@@ -4,17 +4,20 @@ import { getVerifiedResources, getWorkPermitInfo } from "@/lib/data";
 
 export default function WorkPermitsPage() {
   const info = getWorkPermitInfo();
+  const sourceIds = new Set(info.sources);
   const resources = getVerifiedResources().filter((resource) =>
-    info.sources.includes(resource.id)
+    sourceIds.has(resource.id)
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-3xl font-semibold tracking-normal">Work Permit Help</h1>
-      <p className="mt-3 max-w-3xl text-muted-foreground">{info.summary}</p>
+    <div className="page-enter mx-auto max-w-5xl px-4 py-8">
+      <div className="section-enter">
+        <h1 className="text-3xl font-semibold tracking-normal">Work Permit Help</h1>
+        <p className="mt-3 max-w-3xl text-muted-foreground">{info.summary}</p>
+      </div>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_0.8fr]">
-        <Card className="p-5">
+      <section className="section-enter mt-8 grid gap-6 lg:grid-cols-[1fr_0.8fr]">
+        <Card className="section-enter p-5">
           <h2 className="text-lg font-semibold">What students usually need to do</h2>
           <ol className="mt-4 grid gap-3">
             {info.student_steps.map((step, index) => (
@@ -28,7 +31,7 @@ export default function WorkPermitsPage() {
           </ol>
         </Card>
 
-        <Card className="p-5">
+        <Card className="section-enter p-5">
           <h2 className="text-lg font-semibold">Important notes</h2>
           <ul className="mt-4 grid gap-3">
             {info.important_notes.map((note) => (
@@ -41,16 +44,17 @@ export default function WorkPermitsPage() {
         </Card>
       </section>
 
-      <section className="mt-8">
+      <section className="section-enter mt-8">
         <h2 className="text-xl font-semibold">Verified source resources</h2>
         <div className="mt-4 grid gap-3">
-          {resources.map((resource) => (
+          {resources.map((resource, index) => (
             <a
               key={resource.id}
               href={resource.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-start justify-between gap-4 rounded-lg border bg-white p-4 hover:border-primary"
+              style={{ animationDelay: `${index * 45}ms` }}
+              className="section-enter flex items-start justify-between gap-4 rounded-lg border bg-white p-4 hover:border-primary"
             >
               <span>
                 <span className="font-medium">{resource.title}</span>
