@@ -8,10 +8,12 @@ import {
   displayDeadline,
   displayAgeGrade,
   displayStatus,
+  displayTrustLevel,
   displayType,
   getAdminOpportunities,
   getAdminSubmissions,
   getListingReports,
+  paginate,
   publicVerificationValue
 } from "@/lib/data";
 import { isAdminCodeValid } from "@/lib/admin-code";
@@ -50,6 +52,8 @@ export default async function AdminOpportunitiesPage({ searchParams }: { searchP
   const typeFilter = first(params.type) ?? "all";
   const verificationFilter = first(params.verification) ?? "all";
   const locationFilter = (first(params.location) ?? "").toLowerCase();
+  const trustSort = first(params.sort) ?? "none";
+  const requestedPage = Number(first(params.page) ?? "1");
   const opportunities = await getAdminOpportunities();
   const reports = await getListingReports();
   const submissions = await getAdminSubmissions();
@@ -77,26 +81,27 @@ export default async function AdminOpportunitiesPage({ searchParams }: { searchP
     if (locationFilter && !item.locationText.toLowerCase().includes(locationFilter)) return false;
     return true;
   });
+  const sortedFiltered = sortAdminOpportunities(filtered, trustSort);
 
   const pending = opportunities.filter((item) => publicVerificationValue(item.verificationStatus) === "UNVERIFIED");
   const archived = opportunities.filter((item) => item.verificationStatus === "ARCHIVED");
-  const filteredPending = filtered.filter((item) => publicVerificationValue(item.verificationStatus) === "UNVERIFIED");
-  const filteredArchived = filtered.filter((item) => item.verificationStatus === "ARCHIVED");
+  const filteredPending = sortedFiltered.filter((item) => publicVerificationValue(item.verificationStatus) === "UNVERIFIED");
+  const filteredArchived = sortedFiltered.filter((item) => item.verificationStatus === "ARCHIVED");
 
   return (
     <div className="page-enter mx-auto max-w-7xl px-4 py-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-sm font-medium text-primary">
+          <div className="page-kicker">
             <ShieldAlert className="h-4 w-4" aria-hidden="true" />
             Counselor admin
           </div>
-          <h1 className="mt-2 text-3xl font-semibold tracking-normal">Opportunity Management</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="page-title mt-2 text-3xl font-semibold sm:text-4xl">Opportunity Management</h1>
+          <p className="mt-2 max-w-3xl text-muted-foreground">
             Enter the admin code each time you access this page. TODO: replace this MVP code check with real authentication before launch.
           </p>
         </div>
-        <Link href="/admin/opportunities" className="inline-flex items-center justify-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-white">
+        <Link href="/admin/opportunities" className="button-pop inline-flex h-10 items-center justify-center gap-2 rounded-md bg-foreground px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:shadow-md">
           <Lock className="h-4 w-4" aria-hidden="true" />
           Lock admin
         </Link>
@@ -109,19 +114,25 @@ export default async function AdminOpportunitiesPage({ searchParams }: { searchP
         <AdminStat label="Submitted" value={submissions.length.toString()} />
       </section>
 
-      <nav className="section-enter mt-6 flex flex-wrap gap-2 rounded-lg border bg-white p-2 shadow-sm">
+      <nav className="section-enter filter-shell mt-6 flex flex-wrap gap-2 rounded-lg p-2">
         {tabs.map((tab) => (
           <Link
             key={tab.id}
             href={adminHref(code, { tab: tab.id })}
             className={`rounded-md px-3 py-2 text-sm font-semibold transition-all duration-200 ${
-              activeTab === tab.id ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-teal-50 hover:text-teal-900"
+              activeTab === tab.id ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:bg-white hover:text-teal-900 hover:shadow-sm"
             }`}
           >
             {tab.label}
           </Link>
         ))}
       </nav>
+
+      {first(params.error) === "database" && (
+        <div className="mt-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
+          Admin changes need a configured database. The seed fallback can be browsed, but it cannot save updates.
+        </div>
+      )}
 
       {activeTab === "pending" && (
         <section className="mt-6">
@@ -132,13 +143,28 @@ export default async function AdminOpportunitiesPage({ searchParams }: { searchP
             type={typeFilter}
             verification={verificationFilter}
             location={first(params.location) ?? ""}
+            sort={trustSort}
           />
-          <AdminTable code={code} opportunities={filteredPending} title="Pending Verification" showControls />
+          <AdminTable
+            code={code}
+            opportunities={filteredPending}
+            title="Pending Verification"
+            showControls
+            currentPage={requestedPage}
+            pageValues={adminPageValues(params, "pending")}
+          />
         </section>
       )}
 
       {activeTab === "archived" && (
-        <AdminTable code={code} opportunities={filteredArchived} title="Archived" showControls />
+        <AdminTable
+          code={code}
+          opportunities={filteredArchived}
+          title="Archived"
+          showControls
+          currentPage={requestedPage}
+          pageValues={adminPageValues(params, "archived")}
+        />
       )}
 
       {activeTab === "search" && (
@@ -150,8 +176,16 @@ export default async function AdminOpportunitiesPage({ searchParams }: { searchP
             type={typeFilter}
             verification={verificationFilter}
             location={first(params.location) ?? ""}
+            sort={trustSort}
           />
-          <AdminTable code={code} opportunities={filtered} title="Search Results" showControls />
+          <AdminTable
+            code={code}
+            opportunities={sortedFiltered}
+            title="Search Results"
+            showControls
+            currentPage={requestedPage}
+            pageValues={adminPageValues(params, "search")}
+          />
         </section>
       )}
 
@@ -159,7 +193,7 @@ export default async function AdminOpportunitiesPage({ searchParams }: { searchP
 
       {activeTab === "submissions" && <SubmissionsTab code={code} submissions={submissions} />}
 
-      {activeTab === "add" && <AddOpportunityTab code={code} />}
+      {activeTab === "add" && <AddOpportunityTab code={code} showValidationError={first(params.error) === "validation"} />}
     </div>
   );
 }
@@ -198,7 +232,8 @@ function AdminFilters({
   query,
   type,
   verification,
-  location
+  location,
+  sort
 }: {
   code: string;
   tab: string;
@@ -206,9 +241,10 @@ function AdminFilters({
   type: string;
   verification: string;
   location: string;
+  sort: string;
 }) {
   return (
-    <form className="section-enter mb-5 grid gap-3 rounded-lg border bg-white p-4 shadow-sm md:grid-cols-5">
+    <form className="section-enter filter-shell mb-5 grid gap-3 rounded-lg p-4 md:grid-cols-3 xl:grid-cols-6">
       <input type="hidden" name="code" value={code} />
       <input type="hidden" name="tab" value={tab} />
       <label className="text-sm font-medium">
@@ -241,13 +277,21 @@ function AdminFilters({
         Location
         <Input name="location" defaultValue={location} className="mt-1" />
       </label>
+      <label className="text-sm font-medium">
+        Trust order
+        <Select name="sort" defaultValue={sort} className="mt-1">
+          <option value="none">Default</option>
+          <option value="trust_asc">Least trusted first</option>
+          <option value="trust_desc">Most trusted first</option>
+        </Select>
+      </label>
       <div className="flex items-end gap-2">
         <Button type="submit" className="gap-2">
           <Search className="h-4 w-4" aria-hidden="true" />
           Filter
         </Button>
-        <Link href={adminHref(code, { tab })} className="inline-flex h-10 items-center rounded-md border bg-white px-3 text-sm font-medium transition-colors hover:border-teal-700 hover:text-teal-800">
-          Clear Filters
+        <Link href={adminHref(code, { tab })} className="button-pop inline-flex h-10 whitespace-nowrap items-center rounded-md border bg-white px-3 text-sm font-semibold transition-colors hover:border-teal-700 hover:text-teal-800">
+          Clear
         </Link>
       </div>
     </form>
@@ -258,23 +302,29 @@ function AdminTable({
   code,
   opportunities,
   title,
-  showControls
+  showControls,
+  currentPage,
+  pageValues
 }: {
   code: string;
   opportunities: Awaited<ReturnType<typeof getAdminOpportunities>>;
   title: string;
   showControls?: boolean;
+  currentPage: number;
+  pageValues: Record<string, string>;
 }) {
+  const page = paginate(opportunities, Number.isFinite(currentPage) ? currentPage : 1, 25);
+
   return (
     <section className="mt-6">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-xl font-semibold">{title}</h2>
-        <Badge className="bg-muted">{opportunities.length} records</Badge>
+        <Badge className="border-teal-100 bg-teal-50 text-teal-900">{opportunities.length} records</Badge>
       </div>
-      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <div className="app-surface overflow-hidden rounded-lg">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y text-left text-sm">
-            <thead className="bg-muted">
+          <table className="subtle-table min-w-full text-left text-sm">
+            <thead className="bg-teal-50/80 text-teal-950">
               <tr>
                 <Th>Listing</Th>
                 <Th>Type</Th>
@@ -285,9 +335,9 @@ function AdminTable({
                 <Th>Manage</Th>
               </tr>
             </thead>
-            <tbody className="divide-y">
-              {opportunities.map((opportunity) => (
-                <tr key={opportunity.id} className="align-top transition-colors hover:bg-teal-50/50">
+            <tbody className="divide-y divide-slate-100 bg-white/80">
+              {page.items.map((opportunity) => (
+                <tr key={opportunity.id} className="align-top transition-colors hover:bg-teal-50/60">
                   <Td>
                     <Link href={`/opportunities/${opportunity.id}`} className="font-medium text-foreground hover:underline">
                       {opportunity.highlighted && <Star className="mr-1 inline h-3.5 w-3.5 fill-amber-400 text-amber-500" aria-hidden="true" />}
@@ -312,7 +362,9 @@ function AdminTable({
                       <Badge className={statusClass(opportunity.verificationStatus)}>{displayStatus(opportunity.verificationStatus)}</Badge>
                     )}
                   </Td>
-                  <Td>{opportunity.trustLevel}</Td>
+                  <Td>
+                    <Badge className={trustClass(displayTrustLevel(opportunity))}>{displayTrustLevel(opportunity)}</Badge>
+                  </Td>
                   <Td>
                     <div>{opportunity.locationText || "Not listed"}</div>
                     <div className="mt-1 text-xs">{displayAgeGrade(opportunity)}</div>
@@ -325,7 +377,7 @@ function AdminTable({
                           <input type="hidden" name="adminCode" value={code} />
                           <input type="hidden" name="opportunityId" value={opportunity.id} />
                           <input type="hidden" name="action" value={action} />
-                          <button className="rounded-md border bg-white px-2 py-1 text-xs font-medium transition-colors hover:border-teal-700 hover:bg-teal-50 hover:text-teal-900" type="submit">
+                          <button className="button-pop rounded-md border bg-white px-2 py-1 text-xs font-semibold transition-colors hover:border-teal-700 hover:bg-teal-50 hover:text-teal-900" type="submit">
                             {buttonLabel(action)}
                           </button>
                         </form>
@@ -338,6 +390,7 @@ function AdminTable({
           </table>
         </div>
       </div>
+      <AdminPagination code={code} currentPage={page.currentPage} totalPages={page.totalPages} pageValues={pageValues} />
     </section>
   );
 }
@@ -399,13 +452,18 @@ function SubmissionsTab({
   );
 }
 
-function AddOpportunityTab({ code }: { code: string }) {
+function AddOpportunityTab({ code, showValidationError }: { code: string; showValidationError: boolean }) {
   return (
     <Card className="mt-6 p-5">
       <h2 className="flex items-center gap-2 text-xl font-semibold">
         <Plus className="h-5 w-5" aria-hidden="true" />
         Add Opportunity
       </h2>
+      {showValidationError && (
+        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          Please complete the required fields before adding the opportunity.
+        </p>
+      )}
       <form action={addOpportunity} className="mt-4 grid gap-4">
         <input type="hidden" name="adminCode" value={code} />
         <div className="grid gap-4 sm:grid-cols-2">
@@ -436,10 +494,89 @@ function AddOpportunityTab({ code }: { code: string }) {
           <Field label="Application link"><Input name="applyUrl" /></Field>
         </div>
         <Field label="Description"><Textarea name="description" required /></Field>
-        <Button type="submit" className="sm:w-fit">Add as Pending</Button>
+        <Button type="submit" className="sm:w-fit">Add to Opportunities</Button>
       </form>
     </Card>
   );
+}
+
+function sortAdminOpportunities(
+  opportunities: Awaited<ReturnType<typeof getAdminOpportunities>>,
+  sort: string
+) {
+  if (sort === "trust_asc") {
+    return [...opportunities].sort((a, b) => trustRankForAdmin(a) - trustRankForAdmin(b) || a.title.localeCompare(b.title));
+  }
+  if (sort === "trust_desc") {
+    return [...opportunities].sort((a, b) => trustRankForAdmin(b) - trustRankForAdmin(a) || a.title.localeCompare(b.title));
+  }
+  return opportunities;
+}
+
+function trustRankForAdmin(opportunity: Awaited<ReturnType<typeof getAdminOpportunities>>[number]) {
+  const level = displayTrustLevel(opportunity);
+  if (level === "Archived") return 0;
+  if (level === "Hidden") return 1;
+  if (level === "Needs verification") return 2;
+  if (level === "Source lead") return 3;
+  if (level === "Verified source") return 4;
+  if (level === "Admin created") return 5;
+  if (level === "Admin highlighted") return 6;
+  return 7;
+}
+
+function AdminPagination({
+  code,
+  currentPage,
+  totalPages,
+  pageValues
+}: {
+  code: string;
+  currentPage: number;
+  totalPages: number;
+  pageValues: Record<string, string>;
+}) {
+  if (totalPages <= 1) return null;
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1).filter(
+    (page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 2
+  );
+
+  return (
+    <nav className="mt-5 flex flex-wrap items-center justify-center gap-2">
+      {currentPage > 1 && (
+        <Link href={adminHref(code, { ...pageValues, page: String(currentPage - 1) })} className="pagination-link">
+          Previous
+        </Link>
+      )}
+      {pages.map((page, index) => (
+        <span key={page} className="inline-flex items-center gap-2">
+          {index > 0 && page - pages[index - 1] > 1 && (
+            <span className="px-1 text-sm font-semibold text-muted-foreground">...</span>
+          )}
+          <Link
+            href={adminHref(code, { ...pageValues, page: String(page) })}
+            className={`pagination-link ${page === currentPage ? "pagination-link-active" : ""}`}
+          >
+            {page}
+          </Link>
+        </span>
+      ))}
+      {currentPage < totalPages && (
+        <Link href={adminHref(code, { ...pageValues, page: String(currentPage + 1) })} className="pagination-link">
+          Next
+        </Link>
+      )}
+    </nav>
+  );
+}
+
+function adminPageValues(params: Record<string, string | string[] | undefined>, tab: string) {
+  const values: Record<string, string> = { tab };
+  for (const key of ["q", "type", "verification", "location", "sort"]) {
+    const value = first(params[key]);
+    if (value) values[key] = value;
+  }
+  return values;
 }
 
 function adminHref(code: string | undefined, values: Record<string, string>) {
@@ -478,6 +615,14 @@ function statusClass(status: string) {
   if (status === "ACTIVE_VERIFIED") return "border-emerald-200 bg-emerald-50 text-emerald-800";
   if (status === "ARCHIVED") return "border-red-200 bg-red-50 text-red-800";
   return "border-orange-200 bg-orange-50 text-orange-900";
+}
+
+function trustClass(level: string) {
+  if (level.includes("approved") || level.includes("Verified") || level.includes("created")) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  }
+  if (level === "Archived" || level === "Hidden") return "border-red-200 bg-red-50 text-red-800";
+  return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function Th({ children }: { children: React.ReactNode }) {

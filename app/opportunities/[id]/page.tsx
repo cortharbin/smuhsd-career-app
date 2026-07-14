@@ -104,6 +104,7 @@ export default async function OpportunityDetailPage({
                 <option value="Suspicious">Suspicious</option>
                 <option value="Inaccurate">Inaccurate</option>
                 <option value="Unsafe">Unsafe</option>
+                <option value="Other">Other</option>
               </Select>
             </label>
             <label className="grid gap-1 text-sm font-medium">

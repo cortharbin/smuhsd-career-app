@@ -57,5 +57,5 @@ export function findMinAge(eligibility?: string | null) {
 }
 
 export function workPermitLikely(type?: string, paid?: boolean | null, minAge?: number | null) {
-  return type === "job" && paid === true && (!minAge || minAge < 18);
+  return type?.toLowerCase() === "job" && paid === true && (!minAge || minAge < 18);
 }

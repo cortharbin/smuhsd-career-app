@@ -1,4 +1,5 @@
-import { Send } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
+import { AgeGradeFields } from "@/components/age-grade-fields";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Select, Textarea } from "@/components/ui/input";
@@ -9,11 +10,16 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 export default async function SubmitPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const submitted = params.submitted === "1";
+  const error = params.error;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="text-3xl font-semibold tracking-normal">Submit an Opportunity</h1>
-      <p className="mt-3 text-muted-foreground">
+    <div className="page-enter mx-auto max-w-4xl px-4 py-8">
+      <div className="page-kicker">
+        <Sparkles className="h-4 w-4" aria-hidden="true" />
+        Employer and counselor intake
+      </div>
+      <h1 className="page-title mt-2 text-3xl font-semibold sm:text-4xl">Submit an Opportunity</h1>
+      <p className="mt-3 max-w-2xl text-muted-foreground">
         Employers and counselors can submit a record for review. New submissions are
         saved as Pending review and should be checked by an admin before public launch.
       </p>
@@ -23,8 +29,18 @@ export default async function SubmitPage({ searchParams }: { searchParams: Searc
           Thank you. The opportunity was submitted as Pending review.
         </div>
       )}
+      {error === "validation" && (
+        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          Please check the required fields and submit the opportunity again.
+        </div>
+      )}
+      {error === "database" && (
+        <div className="mt-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
+          Submissions need a configured database before they can be saved.
+        </div>
+      )}
 
-      <Card className="mt-6 p-5">
+      <Card className="section-enter mt-6 p-5 sm:p-6">
         <form action={submitOpportunity} className="grid gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Organization">
@@ -48,7 +64,7 @@ export default async function SubmitPage({ searchParams }: { searchParams: Searc
               <Input name="locationText" />
             </Field>
             <Field label="Age/grade requirement">
-              <Input name="gradeRequirement" />
+              <AgeGradeFields />
             </Field>
             <Field label="Paid/unpaid">
               <Select name="paid" defaultValue="unknown">
@@ -57,11 +73,14 @@ export default async function SubmitPage({ searchParams }: { searchParams: Searc
                 <option value="unpaid">Unpaid</option>
               </Select>
             </Field>
-            <Field label="Pay range if known">
-              <Input name="compensationText" />
+            <Field label="Minimum pay">
+              <Input name="payMin" inputMode="decimal" placeholder="15.50" />
+            </Field>
+            <Field label="Maximum pay">
+              <Input name="payMax" inputMode="decimal" placeholder="20.00" />
             </Field>
             <Field label="Deadline">
-              <Input name="deadlineText" />
+              <Input name="deadlineText" placeholder="Jan 15, 2026" />
             </Field>
             <Field label="Application link/contact">
               <Input name="applyUrl" />

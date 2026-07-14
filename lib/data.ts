@@ -1,3 +1,4 @@
+import { cache } from "react";
 import opportunitiesSeed from "@/seed/opportunities.json";
 import organizationsSeed from "@/seed/organizations.json";
 import careerPathwaysSeed from "@/seed/career_pathways.json";
@@ -81,6 +82,23 @@ const locationCodeMatches: Record<string, string[]> = {
   "707": ["northern california", "north bay"]
 };
 
+const nearbyLocationCodes: Record<string, string[]> = {
+  "94010": ["94401", "94402", "94070", "650"],
+  "94401": ["94402", "94010", "94070", "650"],
+  "94402": ["94401", "94010", "94070", "650"],
+  "94025": ["94301", "94070", "650"],
+  "94301": ["94025", "94070", "650", "408"],
+  "94070": ["94401", "94402", "94010", "94025", "650"],
+  "94102": ["415", "650", "94901"],
+  "94901": ["415", "94102", "707"],
+  "95050": ["408", "94301", "650"],
+  "650": ["94010", "94401", "94402", "94025", "94301", "94070", "415", "408"],
+  "415": ["94102", "94901", "650"],
+  "408": ["95050", "94301", "650", "510"],
+  "510": ["408", "650", "415"],
+  "707": ["94901", "415"]
+};
+
 export type OpportunityView = {
   id: string;
   title: string;
@@ -115,6 +133,63 @@ export type OpportunityView = {
   lastVerifiedAt: Date | string | null;
   workPermitLikely: boolean;
 };
+
+const trustRankByLabel: Record<string, number> = {
+  "Archived": 0,
+  "Hidden": 1,
+  "Needs verification": 2,
+  "Source lead": 3,
+  "Verified source": 4,
+  "Admin created": 5,
+  "Admin highlighted": 6,
+  "Admin approved": 7,
+  "Admin approved submission": 7
+};
+
+export function trustRank(opportunity: Pick<OpportunityView, "trustLevel" | "verificationStatus" | "hidden">) {
+  if (opportunity.hidden) return 1;
+  if (opportunity.verificationStatus === "ARCHIVED") return 0;
+  return trustRankByLabel[opportunity.trustLevel] ?? 2;
+}
+
+export function displayTrustLevel(opportunity: Pick<OpportunityView, "trustLevel" | "verificationStatus" | "hidden">) {
+  if (opportunity.hidden) return "Hidden";
+  if (opportunity.verificationStatus === "ARCHIVED") return "Archived";
+  return opportunity.trustLevel || "Needs verification";
+}
+
+function inferredTrustLevel(record: {
+  trustLevel?: string | null;
+  verificationStatus: string;
+  highlighted?: boolean;
+  hidden?: boolean;
+  applyUrl?: string;
+  sourceUrl?: string;
+  contactText?: string;
+  sourceName?: string;
+}) {
+  if (record.hidden) return "Hidden";
+  if (record.verificationStatus === "ARCHIVED") return "Archived";
+  if (record.trustLevel && record.trustLevel !== "Source lead") return record.trustLevel;
+  if (record.highlighted) return "Admin highlighted";
+  if (record.verificationStatus === "ACTIVE_VERIFIED") return "Verified source";
+  if (record.applyUrl || record.sourceUrl || record.contactText) return "Source lead";
+  if (record.sourceName) return "Needs verification";
+  return "Needs verification";
+}
+
+export function paginate<T>(items: T[], page: number, pageSize: number) {
+  const totalPages = Math.max(Math.ceil(items.length / pageSize), 1);
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const start = (currentPage - 1) * pageSize;
+  return {
+    items: items.slice(start, start + pageSize),
+    currentPage,
+    pageSize,
+    totalItems: items.length,
+    totalPages
+  };
+}
 
 function titleCaseStatus(value: string) {
   return value
@@ -193,7 +268,9 @@ export function displayAgeGrade(opportunity: Pick<OpportunityView, "minAge" | "g
 export function displayPay(opportunity: Pick<OpportunityView, "paid" | "compensationText">) {
   const compensation = opportunity.compensationText.trim();
   if (!compensation || /^n\/?a$/i.test(compensation) || /^not listed$/i.test(compensation)) {
-    return opportunity.paid ? "Paid" : "Unpaid";
+    if (opportunity.paid === true) return "Paid";
+    if (opportunity.paid === false) return "Unpaid";
+    return "Pay not listed";
   }
   return compensation;
 }
@@ -227,7 +304,7 @@ function fromSeed(record: SeedOpportunity): OpportunityView {
   const minAge = findMinAge(record.eligibility);
   const title = opportunityDisplayTitle(record);
 
-  return {
+  const opportunity = {
     id: record.id,
     title,
     type: normalizeOpportunityType(record.opportunity_type, record.title),
@@ -261,6 +338,7 @@ function fromSeed(record: SeedOpportunity): OpportunityView {
     lastVerifiedAt: record.date_reviewed_or_posted ?? null,
     workPermitLikely: workPermitLikely(record.opportunity_type, paid, minAge)
   };
+  return { ...opportunity, trustLevel: inferredTrustLevel(opportunity) };
 }
 
 function cleanProgramName(name?: string | null) {
@@ -270,7 +348,7 @@ function cleanProgramName(name?: string | null) {
 function fromCareerPathway(record: CareerPathwaySeed): OpportunityView {
   const title = cleanProgramName(record.program_name ?? record.pathway);
 
-  return {
+  const opportunity = {
     id: record.id,
     title,
     type: "PROGRAM",
@@ -304,12 +382,13 @@ function fromCareerPathway(record: CareerPathwaySeed): OpportunityView {
     lastVerifiedAt: null,
     workPermitLikely: false
   };
+  return { ...opportunity, trustLevel: inferredTrustLevel(opportunity) };
 }
 
 function fromBayworkTraining(record: BayworkTrainingSeed): OpportunityView {
   const title = cleanProgramName(record.program_name);
 
-  return {
+  const opportunity = {
     id: record.id,
     title,
     type: "PROGRAM",
@@ -343,18 +422,24 @@ function fromBayworkTraining(record: BayworkTrainingSeed): OpportunityView {
     lastVerifiedAt: null,
     workPermitLikely: false
   };
+  return { ...opportunity, trustLevel: inferredTrustLevel(opportunity) };
 }
 
+let seedOpportunityViewsCache: OpportunityView[] | null = null;
+
 function getSeedOpportunityViews() {
-  return [
+  if (seedOpportunityViewsCache) return seedOpportunityViewsCache;
+
+  seedOpportunityViewsCache = [
     ...opportunitiesSeed.map(fromSeed),
     ...careerPathwaysSeed.map(fromCareerPathway),
     ...bayworkTrainingSeed.map(fromBayworkTraining)
   ];
+  return seedOpportunityViewsCache;
 }
 
 function fromDb(record: DbOpportunity): OpportunityView {
-  return {
+  const opportunity = {
     id: record.id,
     title: record.title,
     type: record.type,
@@ -388,10 +473,11 @@ function fromDb(record: DbOpportunity): OpportunityView {
     lastVerifiedAt: record.lastVerifiedAt,
     workPermitLikely: record.workPermitLikely
   };
+  return { ...opportunity, trustLevel: inferredTrustLevel(opportunity) };
 }
 
 function fromDbResource(record: DbTrainingResource): OpportunityView {
-  return {
+  const opportunity = {
     id: record.externalId ?? record.id,
     title: record.title,
     type: "PROGRAM",
@@ -425,25 +511,28 @@ function fromDbResource(record: DbTrainingResource): OpportunityView {
     lastVerifiedAt: record.lastVerifiedAt,
     workPermitLikely: false
   };
+  return { ...opportunity, trustLevel: inferredTrustLevel(opportunity) };
 }
 
-async function getOpportunityRecords() {
+const getOpportunityRecords = cache(async function getOpportunityRecords() {
   let records: OpportunityView[];
 
   if (databaseIsConfigured()) {
     try {
-      const dbRecords = await prisma.opportunity.findMany({
-        include: { organization: true },
-        orderBy: [{ highlighted: "desc" }, { verificationStatus: "asc" }, { title: "asc" }]
-      });
-      const pathwayRecords = await prisma.resource.findMany({
-        where: {
-          type: {
-            in: ["career_pathway", "baywork_training_program"]
-          }
-        },
-        orderBy: { title: "asc" }
-      });
+      const [dbRecords, pathwayRecords] = await Promise.all([
+        prisma.opportunity.findMany({
+          include: { organization: true },
+          orderBy: [{ highlighted: "desc" }, { verificationStatus: "asc" }, { title: "asc" }]
+        }),
+        prisma.resource.findMany({
+          where: {
+            type: {
+              in: ["career_pathway", "baywork_training_program"]
+            }
+          },
+          orderBy: { title: "asc" }
+        })
+      ]);
       records = [...dbRecords.map(fromDb), ...pathwayRecords.map((record) => fromDbResource(record as DbTrainingResource))];
     } catch {
       records = getSeedOpportunityViews();
@@ -453,7 +542,7 @@ async function getOpportunityRecords() {
   }
 
   return records;
-}
+});
 
 function filterOpportunities(
   records: OpportunityView[],
@@ -464,28 +553,141 @@ function filterOpportunities(
   career?: string;
   verification?: string;
   age?: string;
+  grade?: string;
+  sort?: string;
   }
 ) {
-  return records.filter((record) => {
-    if (filters?.type && filters.type !== "all" && record.type !== filters.type) return false;
-    if (filters?.location && filters.location !== "all" && !matchesLocationFilter(record, filters.location)) {
-      return false;
+  const locationFilter = filters?.location;
+  if (locationFilter && locationFilter !== "all") {
+    const strict = sortOpportunities(
+      records.filter((record) => matchesNonLocationFilters(record, filters)),
+      filters?.sort
+    );
+    const results = orderByLocationFit(strict, locationFilter).filter((record) =>
+      matchesLocationFilter(record, locationFilter) || matchesNearbyLocationFilter(record, locationFilter)
+    );
+
+    if (results.length < 24) {
+      appendUnique(results, strict);
     }
-    if (filters?.paid === "paid" && record.paid !== true) return false;
-    if (filters?.paid === "unpaid" && record.paid !== false) return false;
-    if (filters?.career && !matchesCareerTag(record, filters.career)) {
-      return false;
+
+    if (results.length < 24) {
+      const relaxedAgeGrade = sortOpportunities(
+        records.filter((record) => matchesNonLocationFilters(record, filters, { relaxAgeGrade: true })),
+        filters?.sort
+      );
+      appendUnique(results, orderByLocationFit(relaxedAgeGrade, locationFilter));
     }
-    if (
-      filters?.verification &&
-      filters.verification !== "all" &&
-      publicVerificationValue(record.verificationStatus) !== filters.verification
-    ) {
-      return false;
+
+    if (results.length < 24) {
+      const relaxedPayUnknown = sortOpportunities(
+        records.filter((record) =>
+          matchesNonLocationFilters(record, filters, { relaxAgeGrade: true, relaxPayUnknown: true })
+        ),
+        filters?.sort
+      );
+      appendUnique(results, orderByLocationFit(relaxedPayUnknown, locationFilter));
     }
-    if (filters?.age && record.minAge && Number(filters.age) < record.minAge) return false;
-    return true;
-  });
+
+    return results;
+  }
+
+  const strict = sortOpportunities(
+    records.filter((record) => matchesNonLocationFilters(record, filters)),
+    filters?.sort
+  );
+
+  if (strict.length >= 24) return strict;
+
+  const results = [...strict];
+  const relaxedAgeGrade = sortOpportunities(
+    records.filter((record) => matchesNonLocationFilters(record, filters, { relaxAgeGrade: true })),
+    filters?.sort
+  );
+  appendUnique(results, relaxedAgeGrade);
+
+  if (results.length < 24) {
+    const relaxedPayUnknown = sortOpportunities(
+      records.filter((record) => matchesNonLocationFilters(record, filters, { relaxAgeGrade: true, relaxPayUnknown: true })),
+      filters?.sort
+    );
+    appendUnique(results, relaxedPayUnknown);
+  }
+
+  return results;
+}
+
+function matchesNonLocationFilters(
+  record: OpportunityView,
+  filters?: {
+    type?: string;
+    paid?: string;
+    career?: string;
+    verification?: string;
+    age?: string;
+    grade?: string;
+  },
+  options?: {
+    relaxAgeGrade?: boolean;
+    relaxPayUnknown?: boolean;
+  }
+) {
+  if (filters?.type && filters.type !== "all" && record.type !== filters.type) return false;
+  if (filters?.paid === "paid" && record.paid !== true) {
+    if (!options?.relaxPayUnknown || record.paid !== null) return false;
+  }
+  if (filters?.paid === "unpaid" && record.paid !== false) {
+    if (!options?.relaxPayUnknown || record.paid !== null) return false;
+  }
+  if (filters?.career && !matchesCareerTag(record, filters.career)) return false;
+  if (
+    filters?.verification &&
+    filters.verification !== "all" &&
+    publicVerificationValue(record.verificationStatus) !== filters.verification
+  ) {
+    return false;
+  }
+  if (!options?.relaxAgeGrade && filters?.age && !matchesAgeFilter(record, filters.age)) return false;
+  if (!options?.relaxAgeGrade && filters?.grade && !matchesGradeFilter(record, filters.grade)) return false;
+  return true;
+}
+
+function orderByLocationFit(records: OpportunityView[], locationFilter: string) {
+  const exact: OpportunityView[] = [];
+  const nearby: OpportunityView[] = [];
+  const other: OpportunityView[] = [];
+
+  for (const record of records) {
+    if (matchesLocationFilter(record, locationFilter)) {
+      exact.push(record);
+    } else if (matchesNearbyLocationFilter(record, locationFilter)) {
+      nearby.push(record);
+    } else {
+      other.push(record);
+    }
+  }
+
+  return [...exact, ...nearby, ...other];
+}
+
+function appendUnique(target: OpportunityView[], additions: OpportunityView[]) {
+  const seen = new Set(target.map((record) => record.id));
+  for (const record of additions) {
+    if (seen.has(record.id)) continue;
+    target.push(record);
+    seen.add(record.id);
+  }
+}
+
+function sortOpportunities(records: OpportunityView[], sort?: string) {
+  if (sort === "trust_asc") {
+    return [...records].sort((a, b) => trustRank(a) - trustRank(b) || a.title.localeCompare(b.title));
+  }
+  if (sort === "trust_desc") {
+    return [...records].sort((a, b) => trustRank(b) - trustRank(a) || a.title.localeCompare(b.title));
+  }
+
+  return records;
 }
 
 function matchesCareerTag(record: OpportunityView, query: string) {
@@ -518,6 +720,8 @@ export async function getOpportunities(filters?: {
   career?: string;
   verification?: string;
   age?: string;
+  grade?: string;
+  sort?: string;
 }) {
   const records = await getOpportunityRecords();
   return filterOpportunities(
@@ -541,6 +745,48 @@ function matchesLocationFilter(record: OpportunityView, filter: string) {
     return matches.some((place) => haystack.includes(place));
   }
   return false;
+}
+
+function matchesNearbyLocationFilter(record: OpportunityView, filter: string) {
+  if (!filter.startsWith("code:")) return false;
+  const code = filter.replace("code:", "");
+  const nearbyCodes = nearbyLocationCodes[code] ?? [];
+  return nearbyCodes.some((nearbyCode) => matchesLocationFilter(record, `code:${nearbyCode}`));
+}
+
+function matchesAgeFilter(record: OpportunityView, ageFilter: string) {
+  const age = Number(ageFilter);
+  if (!Number.isFinite(age)) return true;
+  if (!record.minAge) return true;
+  return age >= record.minAge;
+}
+
+function matchesGradeFilter(record: OpportunityView, gradeFilter: string) {
+  const grade = Number(gradeFilter);
+  if (!Number.isFinite(grade)) return true;
+
+  const requirement = record.gradeRequirement.toLowerCase();
+  if (!requirement.trim()) return true;
+
+  const normalized = requirement
+    .replace(/\bfreshman\b/g, "grade 9")
+    .replace(/\bsophomore\b/g, "grade 10")
+    .replace(/\bjunior\b/g, "grade 11")
+    .replace(/\bsenior\b/g, "grade 12");
+
+  const ranges = [
+    ...normalized.matchAll(/\b(?:grades?|grade)\s*(\d{1,2})\s*(?:-|to|through)\s*(\d{1,2})\b/g)
+  ];
+  if (ranges.some((match) => grade >= Number(match[1]) && grade <= Number(match[2]))) return true;
+
+  const singleGrades = [
+    ...normalized.matchAll(/\b(?:grades?|grade)\s*(\d{1,2})\b/g),
+    ...normalized.matchAll(/\b(\d{1,2})(?:st|nd|rd|th)\s*grade\b/g)
+  ].map((match) => Number(match[1]));
+
+  if (singleGrades.length > 0) return singleGrades.includes(grade);
+
+  return true;
 }
 
 export async function getOpportunity(id: string) {

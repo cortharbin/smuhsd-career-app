@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getAdminCode } from "@/lib/admin-code";
 import { databaseIsConfigured, prisma } from "@/lib/prisma";
+import { workPermitLikely } from "@/lib/seed-mapping";
 
 function requireAdminCode(formData: FormData) {
   const adminCode = getAdminCode();
@@ -15,9 +16,15 @@ function requireAdminCode(formData: FormData) {
   return code;
 }
 
-function adminPath(code: string, tab?: string) {
+function adminPath(code: string, tab?: string, error?: string) {
   const params = new URLSearchParams({ code });
   if (tab) params.set("tab", tab);
+  if (error) params.set("error", error);
+  return `/admin/opportunities?${params.toString()}`;
+}
+
+function missingDatabasePath(code: string, tab: string) {
+  const params = new URLSearchParams({ code, tab, error: "database" });
   return `/admin/opportunities?${params.toString()}`;
 }
 
@@ -33,7 +40,11 @@ export async function updateOpportunityVerification(formData: FormData) {
   const opportunityId = String(formData.get("opportunityId") ?? "");
   const verification = normalizeVerification(String(formData.get("verificationStatus") ?? ""));
 
-  if (databaseIsConfigured() && opportunityId) {
+  if (!databaseIsConfigured()) {
+    redirect(missingDatabasePath(code, "search"));
+  }
+
+  if (opportunityId) {
     await prisma.opportunity.updateMany({
       where: {
         OR: [{ id: opportunityId }, { externalId: opportunityId }]
@@ -55,7 +66,11 @@ export async function updateOpportunityManagement(formData: FormData) {
   const opportunityId = String(formData.get("opportunityId") ?? "");
   const action = String(formData.get("action") ?? "");
 
-  if (databaseIsConfigured() && opportunityId) {
+  if (!databaseIsConfigured()) {
+    redirect(missingDatabasePath(code, "search"));
+  }
+
+  if (opportunityId) {
     if (action === "highlight") {
       await prisma.opportunity.updateMany({
         where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
@@ -118,7 +133,7 @@ const createSchema = z.object({
 
 export async function addOpportunity(formData: FormData) {
   const code = requireAdminCode(formData);
-  const parsed = createSchema.parse({
+  const parsedResult = createSchema.safeParse({
     organizationName: formData.get("organizationName"),
     title: formData.get("title"),
     type: formData.get("type"),
@@ -131,26 +146,38 @@ export async function addOpportunity(formData: FormData) {
     applyUrl: formData.get("applyUrl") || undefined
   });
 
-  if (databaseIsConfigured()) {
-    await prisma.opportunity.create({
-      data: {
-        organizationName: parsed.organizationName,
-        title: parsed.title,
-        type: parsed.type,
-        locationText: parsed.locationText,
-        city: parsed.locationText,
-        description: parsed.description,
-        gradeRequirement: parsed.gradeRequirement,
-        paid: parsed.paid === "unknown" ? null : parsed.paid === "paid",
-        compensationText: parsed.compensationText,
-        deadlineText: parsed.deadlineText,
-        applyUrl: parsed.applyUrl,
-        verificationStatus: "NEEDS_REVIEW",
-        currentStatus: "admin_created_pending_review",
-        trustLevel: "Admin created"
-      }
-    });
+  if (!parsedResult.success) {
+    redirect(adminPath(code, "add", "validation"));
   }
+
+  const parsed = parsedResult.data;
+
+  if (!databaseIsConfigured()) {
+    redirect(missingDatabasePath(code, "add"));
+  }
+
+  const paid = parsed.paid === "unknown" ? null : parsed.paid === "paid";
+
+  await prisma.opportunity.create({
+    data: {
+      organizationName: parsed.organizationName,
+      title: parsed.title,
+      type: parsed.type,
+      locationText: parsed.locationText,
+      city: parsed.locationText,
+      description: parsed.description,
+      gradeRequirement: parsed.gradeRequirement,
+      paid,
+      compensationText: parsed.compensationText,
+      deadlineText: parsed.deadlineText,
+      applyUrl: parsed.applyUrl,
+      verificationStatus: "ACTIVE_VERIFIED",
+      currentStatus: "admin_created",
+      lastVerifiedAt: new Date(),
+      trustLevel: "Admin created",
+      workPermitLikely: workPermitLikely(parsed.type, paid, null)
+    }
+  });
 
   revalidatePath("/admin/opportunities");
   revalidatePath("/opportunities");
@@ -162,7 +189,48 @@ export async function updateSubmissionStatus(formData: FormData) {
   const submissionId = String(formData.get("submissionId") ?? "");
   const status = String(formData.get("status") ?? "PENDING");
 
-  if (databaseIsConfigured() && submissionId) {
+  if (!databaseIsConfigured()) {
+    redirect(missingDatabasePath(code, "submissions"));
+  }
+
+  if (submissionId && status === "APPROVED") {
+    await prisma.$transaction(async (tx) => {
+      const submission = await tx.employerSubmission.findUnique({
+        where: { id: submissionId }
+      });
+
+      if (!submission) return;
+
+      await tx.opportunity.create({
+        data: {
+          organizationName: submission.organizationName,
+          title: submission.title,
+          type: submission.type,
+          city: submission.city,
+          locationText: submission.locationText,
+          description: submission.description,
+          gradeRequirement: submission.gradeRequirement,
+          minAge: submission.minAge,
+          paid: submission.paid,
+          compensationText: submission.compensationText,
+          deadlineText: submission.deadlineText,
+          applyUrl: submission.applyUrl,
+          contactText: submission.contactText,
+          contactEmail: submission.contactEmail,
+          verificationStatus: "ACTIVE_VERIFIED",
+          currentStatus: "approved_submission",
+          lastVerifiedAt: new Date(),
+          trustLevel: "Admin approved submission",
+          workPermitLikely: workPermitLikely(submission.type, submission.paid, submission.minAge)
+        }
+      });
+
+      await tx.employerSubmission.update({
+        where: { id: submissionId },
+        data: { status: "APPROVED" }
+      });
+    });
+  } else if (submissionId) {
     await prisma.employerSubmission.updateMany({
       where: { id: submissionId },
       data: {
@@ -172,5 +240,6 @@ export async function updateSubmissionStatus(formData: FormData) {
   }
 
   revalidatePath("/admin/opportunities");
+  revalidatePath("/opportunities");
   redirect(adminPath(code, "submissions"));
 }

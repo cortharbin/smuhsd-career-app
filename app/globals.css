@@ -13,7 +13,7 @@
   --primary-foreground: 0 0% 100%;
   --border: 220 13% 91%;
   --input: 220 13% 91%;
-  --ring: 176 70% 22%;
+  --ring: 174 72% 16%;
 }
 
 * {
@@ -21,7 +21,9 @@
 }
 
 body {
-  background: hsl(var(--background));
+  background:
+    linear-gradient(180deg, rgba(240, 253, 250, 0.72) 0, rgba(248, 250, 252, 0.9) 280px),
+    hsl(var(--background));
   color: hsl(var(--foreground));
   font-feature-settings: "kern";
 }
@@ -57,6 +59,117 @@ a {
       border-color 160ms ease,
       box-shadow 160ms ease,
       background-color 160ms ease;
+  }
+
+  .app-surface {
+    border: 1px solid rgba(203, 213, 225, 0.86);
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 18px 42px rgba(15, 23, 42, 0.06);
+    backdrop-filter: blur(8px);
+  }
+
+  .filter-shell {
+    border: 1px solid rgba(15, 118, 110, 0.28);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 14px 34px rgba(17, 94, 89, 0.055);
+  }
+
+  .page-title {
+    letter-spacing: 0;
+    color: hsl(var(--foreground));
+  }
+
+  .page-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: hsl(var(--primary));
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+
+  .opportunity-card {
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(203, 213, 225, 0.9);
+    background: rgba(255, 255, 255, 0.96);
+  }
+
+  .opportunity-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: hsl(var(--primary));
+    opacity: 0.82;
+  }
+
+  .opportunity-card:hover {
+    transform: translateY(-3px) scale(1.006);
+    border-color: rgba(20, 184, 166, 0.45);
+    box-shadow:
+      0 2px 5px rgba(15, 23, 42, 0.04),
+      0 18px 40px rgba(17, 94, 89, 0.12);
+  }
+
+  .pagination-link {
+    display: inline-flex;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(203, 213, 225, 0.96);
+    background: rgba(255, 255, 255, 0.96);
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      color 160ms ease,
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .pagination-link:hover {
+    border-color: hsl(var(--primary));
+    background: rgba(240, 253, 250, 0.94);
+    color: hsl(var(--primary));
+    transform: translateY(-1px) scale(1.025);
+    box-shadow: 0 10px 24px rgba(17, 94, 89, 0.09);
+  }
+
+  .button-pop {
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      color 160ms ease,
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .button-pop:hover {
+    transform: translateY(-1px) scale(1.025);
+    box-shadow: 0 10px 24px rgba(17, 94, 89, 0.09);
+  }
+
+  .pagination-link-active {
+    border-color: hsl(var(--primary));
+    background: hsl(var(--primary));
+    color: white;
+    box-shadow: 0 10px 24px rgba(17, 94, 89, 0.18);
+  }
+
+  .subtle-table {
+    border-collapse: separate;
+    border-spacing: 0;
   }
 
   .status-pop {
@@ -117,7 +230,10 @@ a {
     transition-duration: 0.01ms !important;
   }
 
-  .card-lift:hover {
+  .card-lift:hover,
+  .opportunity-card:hover,
+  .button-pop:hover,
+  .pagination-link:hover {
     transform: none;
   }
 }

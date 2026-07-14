@@ -7,16 +7,22 @@ import { databaseIsConfigured, prisma } from "@/lib/prisma";
 
 const reportSchema = z.object({
   opportunityId: z.string().min(1),
-  reason: z.enum(["Expired", "Suspicious", "Inaccurate", "Unsafe"]),
+  reason: z.enum(["Expired", "Suspicious", "Inaccurate", "Unsafe", "Other"]),
   details: z.string().max(800).optional()
 });
 
 export async function reportListing(formData: FormData) {
-  const parsed = reportSchema.parse({
+  const parsedResult = reportSchema.safeParse({
     opportunityId: formData.get("opportunityId"),
     reason: formData.get("reason"),
     details: formData.get("details") || undefined
   });
+
+  if (!parsedResult.success) {
+    redirect("/opportunities?reportError=1");
+  }
+
+  const parsed = parsedResult.data;
 
   if (databaseIsConfigured()) {
     await prisma.listingReport.create({
@@ -25,5 +31,5 @@ export async function reportListing(formData: FormData) {
   }
 
   revalidatePath("/admin/opportunities");
-  redirect(`/opportunities/${parsed.opportunityId}?reported=1`);
+  redirect(`/opportunities/${encodeURIComponent(parsed.opportunityId)}?reported=1`);
 }

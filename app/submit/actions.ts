@@ -11,9 +11,12 @@ const schema = z.object({
   type: z.enum(["JOB", "INTERNSHIP", "PROGRAM", "VOLUNTEER", "EVENT", "TRAINING_PATHWAY", "STUDENT_RESOURCE"]),
   locationText: z.string().optional(),
   description: z.string().min(10),
-  gradeRequirement: z.string().optional(),
+  ageRequirementKind: z.enum(["grade", "age"]),
+  gradeLevel: z.string().optional(),
+  minAge: z.coerce.number().int().min(14).max(18).optional(),
   paid: z.enum(["unknown", "paid", "unpaid"]),
-  compensationText: z.string().optional(),
+  payMin: z.string().optional(),
+  payMax: z.string().optional(),
   deadlineText: z.string().optional(),
   applyUrl: z.string().optional(),
   contactText: z.string().optional(),
@@ -22,15 +25,18 @@ const schema = z.object({
 });
 
 export async function submitOpportunity(formData: FormData) {
-  const parsed = schema.parse({
+  const parsedResult = schema.safeParse({
     organizationName: formData.get("organizationName"),
     title: formData.get("title"),
     type: formData.get("type"),
     locationText: formData.get("locationText") || undefined,
     description: formData.get("description"),
-    gradeRequirement: formData.get("gradeRequirement") || undefined,
+    ageRequirementKind: formData.get("ageRequirementKind"),
+    gradeLevel: formData.get("gradeLevel") || undefined,
+    minAge: formData.get("minAge") || undefined,
     paid: formData.get("paid"),
-    compensationText: formData.get("compensationText") || undefined,
+    payMin: formData.get("payMin") || undefined,
+    payMax: formData.get("payMax") || undefined,
     deadlineText: formData.get("deadlineText") || undefined,
     applyUrl: formData.get("applyUrl") || undefined,
     contactText: formData.get("contactText") || undefined,
@@ -38,9 +44,19 @@ export async function submitOpportunity(formData: FormData) {
     contactEmail: formData.get("contactEmail")
   });
 
-  if (!databaseIsConfigured()) {
-    throw new Error("DATABASE_URL and DIRECT_URL are required before submissions can be saved.");
+  if (!parsedResult.success) {
+    redirect("/submit?error=validation");
   }
+
+  const parsed = parsedResult.data;
+
+  if (!databaseIsConfigured()) {
+    redirect("/submit?error=database");
+  }
+
+  const gradeRequirement =
+    parsed.ageRequirementKind === "grade" && parsed.gradeLevel ? `Grade ${parsed.gradeLevel}` : undefined;
+  const compensationText = formatPayRange(parsed.payMin, parsed.payMax);
 
   await prisma.employerSubmission.create({
     data: {
@@ -49,9 +65,10 @@ export async function submitOpportunity(formData: FormData) {
       type: parsed.type,
       locationText: parsed.locationText,
       description: parsed.description,
-      gradeRequirement: parsed.gradeRequirement,
+      gradeRequirement,
+      minAge: parsed.ageRequirementKind === "age" ? parsed.minAge : null,
       paid: parsed.paid === "unknown" ? null : parsed.paid === "paid",
-      compensationText: parsed.compensationText,
+      compensationText,
       deadlineText: parsed.deadlineText,
       applyUrl: parsed.applyUrl,
       contactText: parsed.contactText,
@@ -63,4 +80,13 @@ export async function submitOpportunity(formData: FormData) {
 
   revalidatePath("/admin/opportunities");
   redirect("/submit?submitted=1");
+}
+
+function formatPayRange(min?: string, max?: string) {
+  const cleanMin = min?.trim();
+  const cleanMax = max?.trim();
+  if (cleanMin && cleanMax) return `$${cleanMin} - $${cleanMax}`;
+  if (cleanMin) return `$${cleanMin}+`;
+  if (cleanMax) return `Up to $${cleanMax}`;
+  return undefined;
 }
