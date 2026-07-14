@@ -83,6 +83,7 @@ model Opportunity {
   currentStatus      String?
   trustLevel         String             @default("Source lead")
   highlighted        Boolean            @default(false)
+  pinned             Boolean            @default(false)
   hidden             Boolean            @default(false)
   expiresAt          DateTime?
   verificationStatus VerificationStatus @default(UNVERIFIED)

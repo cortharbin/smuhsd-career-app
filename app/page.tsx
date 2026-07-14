@@ -1,7 +1,8 @@
-import { BriefcaseBusiness, GraduationCap, HandHeart, Search, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { BriefcaseBusiness, ExternalLink, GraduationCap, HandHeart, Pin, Search, ShieldCheck } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getOpportunityStats } from "@/lib/data";
+import { displayDeadline, displayPay, displayType, getOpportunityStats, getPinnedOpportunities } from "@/lib/data";
 
 const quickLinks = [
   { href: "/opportunities?type=JOB", label: "Jobs", icon: BriefcaseBusiness },
@@ -12,7 +13,10 @@ const quickLinks = [
 ];
 
 export default async function HomePage() {
-  const stats = await getOpportunityStats();
+  const [stats, pinnedOpportunities] = await Promise.all([
+    getOpportunityStats(),
+    getPinnedOpportunities()
+  ]);
 
   return (
     <div className="home-enter page-enter mx-auto max-w-6xl px-4 py-10">
@@ -62,6 +66,41 @@ export default async function HomePage() {
           );
         })}
       </section>
+
+      {pinnedOpportunities.length > 0 && (
+        <section className="section-enter mt-10">
+          <div className="mb-4 flex items-center gap-2">
+            <Pin className="h-4 w-4 text-primary" aria-hidden="true" />
+            <h2 className="text-xl font-semibold tracking-normal">Pinned opportunities</h2>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {pinnedOpportunities.map((opportunity, index) => (
+              <Link
+                key={opportunity.id}
+                href={`/opportunities/${opportunity.id}`}
+                prefetch={false}
+                style={{ animationDelay: `${index * 45}ms` }}
+                className="section-enter card-lift rounded-lg border bg-white p-4 transition-colors hover:border-primary hover:text-teal-900"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-semibold uppercase text-primary">
+                      {displayType(opportunity.type)}
+                    </div>
+                    <h3 className="mt-2 font-semibold tracking-normal">{opportunity.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{opportunity.organizationName}</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
+                  <span>{displayPay(opportunity)}</span>
+                  <span>{displayDeadline(opportunity.deadlineText)}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="section-enter mt-10 rounded-lg border bg-white p-5 text-sm text-muted-foreground shadow-sm">
         Opportunities listed here are informational leads from school and public

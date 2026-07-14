@@ -88,10 +88,22 @@ export async function updateOpportunityManagement(formData: FormData) {
           data: { highlighted: false, trustLevel: "Source lead" }
         });
       }
+      if (action === "pin") {
+        await prisma.opportunity.updateMany({
+          where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
+          data: { pinned: true }
+        });
+      }
+      if (action === "unpin") {
+        await prisma.opportunity.updateMany({
+          where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
+          data: { pinned: false }
+        });
+      }
       if (action === "hide") {
         await prisma.opportunity.updateMany({
           where: { OR: [{ id: opportunityId }, { externalId: opportunityId }] },
-          data: { hidden: true, currentStatus: "hidden_by_admin" }
+          data: { hidden: true, pinned: false, currentStatus: "hidden_by_admin" }
         });
       }
       if (action === "expire") {
@@ -123,6 +135,7 @@ export async function updateOpportunityManagement(formData: FormData) {
 
   revalidatePath("/admin/opportunities");
   revalidatePath("/opportunities");
+  revalidatePath("/");
   redirect(adminPath(code, "search"));
 }
 

@@ -128,6 +128,7 @@ export type OpportunityView = {
   verificationStatus: string;
   trustLevel: string;
   highlighted: boolean;
+  pinned: boolean;
   hidden: boolean;
   expiresAt: Date | string | null;
   lastVerifiedAt: Date | string | null;
@@ -333,6 +334,7 @@ function fromSeed(record: SeedOpportunity): OpportunityView {
     verificationStatus: mapVerificationStatus(record.current_status, record.web_verification_status),
     trustLevel: record.web_verification_status === "verified_current_page" ? "Verified source" : "Source lead",
     highlighted: false,
+    pinned: false,
     hidden: false,
     expiresAt: null,
     lastVerifiedAt: record.date_reviewed_or_posted ?? null,
@@ -377,6 +379,7 @@ function fromCareerPathway(record: CareerPathwaySeed): OpportunityView {
     verificationStatus: "NEEDS_REVIEW",
     trustLevel: "Source lead",
     highlighted: false,
+    pinned: false,
     hidden: false,
     expiresAt: null,
     lastVerifiedAt: null,
@@ -417,6 +420,7 @@ function fromBayworkTraining(record: BayworkTrainingSeed): OpportunityView {
     verificationStatus: "NEEDS_REVIEW",
     trustLevel: "Source lead",
     highlighted: false,
+    pinned: false,
     hidden: false,
     expiresAt: null,
     lastVerifiedAt: null,
@@ -468,6 +472,7 @@ function fromDb(record: DbOpportunity): OpportunityView {
     verificationStatus: record.verificationStatus,
     trustLevel: record.trustLevel,
     highlighted: record.highlighted,
+    pinned: record.pinned,
     hidden: record.hidden,
     expiresAt: record.expiresAt,
     lastVerifiedAt: record.lastVerifiedAt,
@@ -506,6 +511,7 @@ function fromDbResource(record: DbTrainingResource): OpportunityView {
     verificationStatus: record.verificationStatus,
     trustLevel: "Source lead",
     highlighted: false,
+    pinned: false,
     hidden: false,
     expiresAt: null,
     lastVerifiedAt: record.lastVerifiedAt,
@@ -728,6 +734,13 @@ export async function getOpportunities(filters?: {
     records.filter((record) => !record.hidden),
     filters
   );
+}
+
+export async function getPinnedOpportunities() {
+  const records = await getOpportunityRecords();
+  return records
+    .filter((record) => record.pinned && !record.hidden && record.verificationStatus !== "ARCHIVED")
+    .sort((a, b) => a.title.localeCompare(b.title));
 }
 
 export function getLocationOptions(): LocationOption[] {

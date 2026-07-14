@@ -341,6 +341,7 @@ function AdminTable({
                   <Td>
                     <Link href={`/opportunities/${opportunity.id}`} className="font-medium text-foreground hover:underline">
                       {opportunity.highlighted && <Star className="mr-1 inline h-3.5 w-3.5 fill-amber-400 text-amber-500" aria-hidden="true" />}
+                      {opportunity.pinned && <span className="mr-1 inline text-xs font-semibold text-teal-700">Pinned</span>}
                       {opportunity.title}
                     </Link>
                     <div className="mt-1 text-xs text-muted-foreground">{opportunity.organizationName}</div>
@@ -373,7 +374,13 @@ function AdminTable({
                   <Td>{displayDeadline(opportunity.deadlineText)}</Td>
                   <Td>
                     <div className="flex flex-wrap gap-2">
-                      {["approve", opportunity.highlighted ? "unhighlight" : "highlight", "hide", "expire"].map((action) => (
+                      {[
+                        "approve",
+                        opportunity.highlighted ? "unhighlight" : "highlight",
+                        opportunity.pinned ? "unpin" : "pin",
+                        "hide",
+                        "expire"
+                      ].map((action) => (
                         <form key={action} action={updateOpportunityManagement}>
                           <input type="hidden" name="adminCode" value={code} />
                           <input type="hidden" name="opportunityId" value={opportunity.id} />
@@ -617,6 +624,7 @@ function adminVerificationLabel(status: string) {
 
 function buttonLabel(action: string) {
   if (action === "unhighlight") return "Unhighlight";
+  if (action === "unpin") return "Unpin";
   return action.replace(/^\w/, (letter) => letter.toUpperCase());
 }
 
